@@ -406,6 +406,12 @@ async function fetchSemesterStartDate(academicYear, semesterCode) {
 }
 
 /**
+ * 时间校验：允许单位数小时（正方常返回 "9:15"），但必须落在真实范围内
+ * （旧版仅用 /^\d{1,2}:\d{2}$/，会把 "25:99" 这类非法值放行 → 已据单测修正）
+ */
+const TIME_RE = /^(?:[01]?\d|2[0-3]):[0-5]\d$/;
+
+/**
  * 将任意来源的节次条目归一化为 {number, startTime, endTime}
  * 不同正方版本字段名不一致，这里做多名称兼容
  */
@@ -421,7 +427,8 @@ function normalizeTimeSlotItem(item) {
     end = pad(end.substring(0, 5));
 
     if (!Number.isFinite(num) || num < 1) return null;
-    if (!/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)) return null;
+    if (!TIME_RE.test(start) || !TIME_RE.test(end)) return null;
+    if (start >= end) return null;   // 起止倒置/相等视为无效
 
     return { number: num, startTime: start, endTime: end };
 }
@@ -463,21 +470,19 @@ function parseTimeSlotsFromDom() {
         const text = document.body ? document.body.innerText : '';
         if (!text) return null;
 
-        const found = new Map();
+        const raw = [];
         const re = /(?:第)?\s*(\d{1,2})\s*(?:[-~至]\s*(\d{1,2}))?\s*节[^\d\n]{0,10}(\d{1,2}:\d{2})\s*[-~～—]{1,2}\s*(\d{1,2}:\d{2})/g;
         let m;
         while ((m = re.exec(text)) !== null) {
             const startNum = Number(m[1]);
             const endNum = m[2] ? Number(m[2]) : startNum;
-            const startTime = m[3].length === 4 ? '0' + m[3] : m[3];
-            const endTime = m[4].length === 4 ? '0' + m[4] : m[4];
             for (let n = startNum; n <= endNum; n++) {
-                if (!found.has(n)) found.set(n, { number: n, startTime, endTime });
+                // 交给统一的校验/归一化逻辑（含时间范围校验），避免脏数据写进作息
+                raw.push({ jcmc: n, qssj: m[3], jssj: m[4] });
             }
         }
 
-        const slots = [...found.values()].sort((a, b) => a.number - b.number);
-        return slots.length >= 3 ? slots : null;
+        return buildTimeSlotsFrom(raw);
     } catch (e) {
         return null;
     }
