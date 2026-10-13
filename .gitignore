@@ -6,3 +6,6 @@
 
 # 忽略适配占位符文件，防止开发者误提交测试代码
 resources/GLOBAL_TOOLS/test.js
+# Python 编译缓存（运行 scripts/build_data.py 产生）
+__pycache__/
+*.pyc
