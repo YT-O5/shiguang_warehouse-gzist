@@ -1,7 +1,6 @@
 // 广州理工学院（GZIST）拾光课程表适配脚本
 // 正方教务 v9 接口，参考案例 JSEI_01：
 // https://github.com/XingHeYuZhuan/shiguang_warehouse/tree/main/resources/JSEI
-// 非该校开发者适配，发现问题请提 issue 或 PR
 
 /** 基础域名：校园网直连 / WebVPN（按当前页面自动选择） */
 const BASE_URLS = {
